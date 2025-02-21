@@ -5,7 +5,7 @@
     "title": "Urban Tuxedo API",
     "description": "API documentation for Urban Tuxedo Backend"
   },
-  "host": "localhost:3000",
+  "host": "urban-tuxedo-backend.vercel.app",
   "basePath": "/",
   "tags": [
     {

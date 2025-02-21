@@ -6,10 +6,7 @@ const doc = {
     title: "Urban Tuxedo API",
     description: "API documentation for Urban Tuxedo Backend",
   },
-  host:
-    process.env.NODE_ENV === "production"
-      ? "urban-tuxedo-backend.vercel.app"
-      : "localhost:3000",
+  host: "urban-tuxedo-backend.vercel.app",
   basePath: "/",
   schemes: ["https", "http"],
   consumes: ["application/json"],
