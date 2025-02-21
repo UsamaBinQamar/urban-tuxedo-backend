@@ -4,37 +4,13 @@ const mongoose = require("mongoose");
 const swaggerUi = require("swagger-ui-express");
 const swaggerFile = require("../swagger-output.json");
 const authRoutes = require("../routes/auth");
+const path = require("path");
 
 const app = express();
 
 // Middleware
 app.use(express.json());
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: "Something went wrong!" });
-});
-// Swagger docs
 
-const swaggerOptions = {
-  explorer: true,
-  swaggerOptions: {
-    urls: [
-      {
-        url: "/swagger-output.json",
-        name: "Urban Tuxedo API",
-      },
-    ],
-  },
-};
-
-app.use("/swagger-output.json", (req, res) => {
-  res.json(swaggerFile);
-});
-app.use(
-  "/api-docs",
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerFile, swaggerOptions)
-);
 // CORS middleware for Vercel
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -49,8 +25,28 @@ app.use((req, res, next) => {
   next();
 });
 
+// Swagger configuration
+const swaggerOptions = {
+  customCssUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css",
+  customJs:
+    "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.js",
+  customSiteTitle: "Urban Tuxedo API Documentation",
+  swaggerOptions: {
+    url: "/swagger.json",
+    docExpansion: "none",
+  },
+};
+
+// Serve swagger json
+app.get("/swagger.json", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(swaggerFile);
+});
+
 // Swagger docs
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
+app.use("/api-docs", swaggerUi.serve);
+app.get("/api-docs", swaggerUi.setup(swaggerFile, swaggerOptions));
 
 // Routes
 app.use("/api/auth", authRoutes);
