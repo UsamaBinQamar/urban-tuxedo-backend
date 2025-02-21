@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 // Register route
 router.post("/register", async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, role } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({
@@ -20,7 +20,7 @@ router.post("/register", async (req, res) => {
     }
 
     // Create new user
-    const user = new User({ username, email, password });
+    const user = new User({ username, email, password, role });
     await user.save();
 
     // Generate JWT token
