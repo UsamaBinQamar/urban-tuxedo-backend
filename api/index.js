@@ -4,14 +4,13 @@ const mongoose = require("mongoose");
 const swaggerUi = require("swagger-ui-express");
 const swaggerFile = require("../swagger-output.json");
 const authRoutes = require("../routes/auth");
-const path = require("path");
 
 const app = express();
 
 // Middleware
 app.use(express.json());
 
-// CORS middleware for Vercel
+// CORS middleware
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
@@ -25,26 +24,31 @@ app.use((req, res, next) => {
   next();
 });
 
-// Swagger configuration
+// Swagger setup with CDN links
 const swaggerOptions = {
-  customCssUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css",
-  customJs:
-    "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.js",
-  customSiteTitle: "Urban Tuxedo API Documentation",
+  explorer: true,
   swaggerOptions: {
     url: "/swagger.json",
-    docExpansion: "none",
   },
+  customCss: ".swagger-ui .topbar { display: none }",
+  customSiteTitle: "Urban Tuxedo API Docs",
+  customfavIcon: "https://swagger.io/favicon-32x32.png",
+  customCssUrl: [
+    "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.9.0/swagger-ui.min.css",
+  ],
+  customJs: [
+    "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.9.0/swagger-ui-bundle.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.9.0/swagger-ui-standalone-preset.js",
+  ],
 };
 
-// Serve swagger json
+// Serve swagger.json
 app.get("/swagger.json", (req, res) => {
   res.setHeader("Content-Type", "application/json");
   res.send(swaggerFile);
 });
 
-// Swagger docs
+// Swagger docs endpoint
 app.use("/api-docs", swaggerUi.serve);
 app.get("/api-docs", swaggerUi.setup(swaggerFile, swaggerOptions));
 
@@ -55,7 +59,7 @@ app.get("/", (req, res) => {
   res.json({ message: "Welcome to Urban Tuxedo API" });
 });
 
-// Connect to MongoDB
+// MongoDB connection
 mongoose
   .connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
@@ -64,5 +68,4 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
-// Export the Express API
 module.exports = app;
