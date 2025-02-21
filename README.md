@@ -47,8 +47,4 @@ npm run swagger-gen
 http://localhost:3000/api-docs
 ```
 
-❓ **Need Help?** Create an issue in the repository
-
 ---
-
-Happy Coding! 🎉
