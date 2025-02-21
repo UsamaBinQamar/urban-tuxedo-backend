@@ -13,7 +13,28 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: "Something went wrong!" });
 });
+// Swagger docs
 
+const swaggerOptions = {
+  explorer: true,
+  swaggerOptions: {
+    urls: [
+      {
+        url: "/swagger-output.json",
+        name: "Urban Tuxedo API",
+      },
+    ],
+  },
+};
+
+app.use("/swagger-output.json", (req, res) => {
+  res.json(swaggerFile);
+});
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerFile, swaggerOptions)
+);
 // CORS middleware for Vercel
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
