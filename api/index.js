@@ -4,8 +4,11 @@ const mongoose = require("mongoose");
 const swaggerUi = require("swagger-ui-express");
 const swaggerFile = require("../swagger-output.json");
 const authRoutes = require("../routes/auth");
+const productRoutes = require("../routes/product");
+const cors = require("cors");
 
 const app = express();
+app.use(cors());
 
 // Middleware
 app.use(express.json());
@@ -54,6 +57,12 @@ app.get("/api-docs", swaggerUi.setup(swaggerFile, swaggerOptions));
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/products", productRoutes);
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to Urban Tuxedo API" });
