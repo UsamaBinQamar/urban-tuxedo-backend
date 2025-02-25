@@ -158,6 +158,8 @@ exports.createCheckoutSession = async (req, res) => {
         currency: "usd",
         product_data: {
           name: item.name,
+          // Add this line to include images:
+          images: item.image ? [item.image] : [],
         },
         unit_amount: Math.round(item.price * 100), // Convert to cents
       },
