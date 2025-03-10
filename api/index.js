@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const swaggerUi = require("swagger-ui-express");
 const swaggerFile = require("../swagger-output.json");
 const authRoutes = require("../routes/auth");
+const categoryRoutes = require("../routes/category");
 const productRoutes = require("../routes/product");
 const cors = require("cors");
 
@@ -58,6 +59,7 @@ app.get("/api-docs", swaggerUi.setup(swaggerFile, swaggerOptions));
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/category", categoryRoutes);
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
