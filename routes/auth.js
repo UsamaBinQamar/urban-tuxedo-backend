@@ -28,7 +28,7 @@ router.post("/register", async (req, res) => {
       expiresIn: "24h",
     });
 
-    res.status(201).json({ token });
+    res.status(201).json({ token, user });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -56,7 +56,7 @@ router.post("/login", async (req, res) => {
       expiresIn: "24h",
     });
 
-    res.json({ token });
+    res.json({ token, user });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
