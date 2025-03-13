@@ -106,6 +106,7 @@ exports.createCheckoutSession = async (req, res) => {
       paymentMethod,
       items,
       totalAmount,
+      status: "Processing",
     });
     await newOrder.save();
 
@@ -185,7 +186,7 @@ exports.createCheckoutSession = async (req, res) => {
         customer: JSON.stringify(customer),
         paymentMethod,
       },
-      success_url: `http://localhost:5173/checkout-success?orderId=${newOrder._id}`,
+      success_url: `http://localhost:5173/checkout-success/${newOrder._id}`,
       cancel_url: `http://localhost:5173/checkout-failed`,
     });
 
