@@ -27,15 +27,16 @@ exports.getOrderByID = async (req, res) => {
 };
 
 exports.getOrderByEmail = async (email) => {
-  try {
-    const orders = await Order.find({ "customer.email": email }).lean();
-    if (orders.length === 0) {
-      console.log("No orders found for this email.");
-      return null;
+    try {
+      // Ensure we're using a string comparison for the email field
+      const orders = await Order.find({ "customer.email": String(email) }).lean();
+      if (orders.length === 0) {
+        console.log("No orders found for this email.");
+        return null;
+      }
+      return orders;
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      throw error;
     }
-    return orders;
-  } catch (error) {
-    console.error("Error fetching orders:", error);
-    throw error;
-  }
-};
+  };
