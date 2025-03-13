@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const Product = require("../models/Product");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const User = require("../models/User"); // You'll need to create this model
+const Order = require("../models/Order");
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000"; // Fallback URL
 
 // Create a new product
@@ -87,7 +88,7 @@ exports.createCheckoutSession = async (req, res) => {
     }
 
     // Generate unique order ID
-    const orderId = "232323213";
+    const orderId = uuidv4();
 
     // Prepare line items for Stripe
     const lineItems = items.map((item) => ({
@@ -102,6 +103,16 @@ exports.createCheckoutSession = async (req, res) => {
       quantity: item.quantity,
     }));
 
+    // Create a new order in the database
+    const newOrder = new Order({
+      customer,
+      paymentMethod,
+      items,
+      totalAmount,
+      _id: orderId, // Assign generated order ID
+    });
+    await newOrder.save();
+
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"], // You can add more methods if needed
@@ -112,10 +123,9 @@ exports.createCheckoutSession = async (req, res) => {
         orderId,
         customer: JSON.stringify(customer),
         paymentMethod,
-        // items: JSON.stringify(items), // Store full items data
       },
-      success_url: `http://localhost:5173//checkout-success?orderId=${orderId}`,
-      cancel_url: `http://localhost:5173//checkout-failed`,
+      success_url: `http:/localhost:5173/checkout-success/${orderId}`,
+      cancel_url: `http:/localhost:5173/checkout-failed`,
     });
 
     // Return session URL to frontend
@@ -125,6 +135,7 @@ exports.createCheckoutSession = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 // Webhook to handle successful payments
 exports.handleStripeWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
