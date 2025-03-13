@@ -274,6 +274,9 @@
                 "customer": {
                   "example": "any"
                 },
+                "paymentMethod": {
+                  "example": "any"
+                },
                 "items": {
                   "example": "any"
                 },
