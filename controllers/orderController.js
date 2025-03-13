@@ -28,7 +28,7 @@ exports.getOrderByID = async (req, res) => {
 
 exports.getOrderByEmail = async (email) => {
   try {
-    const orders = await Order.find({ "customer.email": email });
+    const orders = await Order.find({ "customer.email": email }).lean();
     if (orders.length === 0) {
       console.log("No orders found for this email.");
       return null;
