@@ -23,7 +23,8 @@
     "stripe": "^17.6.0",
     "swagger-autogen": "^2.23.7",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "uuidv4": "^6.2.13"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

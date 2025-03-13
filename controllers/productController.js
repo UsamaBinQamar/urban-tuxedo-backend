@@ -79,136 +79,50 @@ exports.deleteProduct = async (req, res) => {
 
 exports.createCheckoutSession = async (req, res) => {
   try {
-    const { customer, items, totalAmount } = req.body;
+    const { customer, paymentMethod, items, totalAmount } = req.body;
 
-    // Validate required fields
+    // Validate input
     if (!customer || !items || !totalAmount) {
-      return res.status(400).json({
-        error: "Missing required fields",
-      });
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Find or create user in MongoDB
-    let user = await User.findOne({ email: customer.email });
+    // Generate unique order ID
+    const orderId = "232323213";
 
-    if (!user) {
-      // Generate a temporary password and username for new users
-      const tempPassword = crypto.randomBytes(8).toString("hex");
-      const username =
-        customer.email.split("@")[0] +
-        "_" +
-        crypto.randomBytes(4).toString("hex");
-
-      try {
-        // Create customer in Stripe first
-        const stripeCustomer = await stripe.customers.create({
-          email: customer.email,
-          name: `${customer.firstName} ${customer.lastName}`,
-          phone: customer.phone,
-          address: {
-            line1: customer.address.street,
-            city: customer.address.city,
-            state: customer.address.state,
-            postal_code: customer.address.zipCode,
-          },
-        });
-
-        // Create user in MongoDB
-        user = await User.create({
-          username: username,
-          password: tempPassword, // This will be hashed by the pre-save hook
-          email: customer.email,
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          phone: customer.phone,
-          addresses: [
-            {
-              street: customer.address.street,
-              city: customer.address.city,
-              state: customer.address.state,
-              zipCode: customer.address.zipCode,
-              isDefault: true,
-            },
-          ],
-          stripeCustomerId: stripeCustomer.id,
-        });
-      } catch (error) {
-        console.error("Error creating user:", error);
-        return res.status(400).json({
-          error: "Failed to create user",
-          details: error.message,
-        });
-      }
-    }
-
-    // If user exists but doesn't have a Stripe customer ID, create one
-    if (!user.stripeCustomerId) {
-      const stripeCustomer = await stripe.customers.create({
-        email: user.email,
-        name: `${user.firstName} ${user.lastName}`,
-        phone: user.phone,
-      });
-      user.stripeCustomerId = stripeCustomer.id;
-      await user.save();
-    }
-
-    // Format line items for Stripe
+    // Prepare line items for Stripe
     const lineItems = items.map((item) => ({
       price_data: {
         currency: "usd",
         product_data: {
-          name: item.name,
-          // Add this line to include images:
-          images: item.image ? [item.image] : [],
+          name: item.title,
+          images: [item.images?.primary || item.images?.gallery?.[0] || ""], // Fallback to gallery image if primary is missing
         },
-        unit_amount: Math.round(item.price * 100), // Convert to cents
+        unit_amount: Math.round(item.price * 100), // Convert price to cents
       },
       quantity: item.quantity,
     }));
 
-    // Ensure URLs are properly formatted
-    const successUrl = new URL("/order/success", CLIENT_URL).toString();
-    const cancelUrl = new URL("/cart", CLIENT_URL).toString();
-
-    // Create Stripe checkout session
+    // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
-      customer: user.stripeCustomerId,
-      payment_method_types: ["card"],
+      payment_method_types: ["card"], // You can add more methods if needed
+      customer_email: customer.email,
       line_items: lineItems,
       mode: "payment",
       metadata: {
-        userId: user._id.toString(),
-        orderDetails: JSON.stringify({
-          items: items.map((item) => ({
-            id: item.id,
-            quantity: item.quantity,
-          })),
-        }),
+        orderId,
+        customer: JSON.stringify(customer),
+        paymentMethod,
+        // items: JSON.stringify(items), // Store full items data
       },
-      payment_method_options: {
-        card: {
-          request_three_d_secure: "automatic",
-        },
-      },
-      success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl,
-      billing_address_collection: "required",
-      shipping_address_collection: {
-        allowed_countries: ["US"], // Adjust based on your shipping countries
-      },
+      success_url: `http://localhost:5173//checkout-success?orderId=${orderId}`,
+      cancel_url: `http://localhost:5173//checkout-failed`,
     });
 
-    // Return the checkout URL
-    return res.status(200).json({
-      url: session.url,
-      sessionId: session.id,
-    });
+    // Return session URL to frontend
+    res.status(200).json({ url: session.url });
   } catch (error) {
-    console.error("Checkout session creation failed:", error);
-    return res.status(500).json({
-      error: "Failed to create checkout session",
-      details: error.message,
-    });
+    console.error("Error creating checkout session:", error);
+    res.status(500).json({ error: error.message });
   }
 };
 // Webhook to handle successful payments
