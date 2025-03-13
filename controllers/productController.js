@@ -106,7 +106,6 @@ exports.createCheckoutSession = async (req, res) => {
       paymentMethod,
       items,
       totalAmount,
-      _id: orderId, // Assign generated order ID
     });
     await newOrder.save();
 
