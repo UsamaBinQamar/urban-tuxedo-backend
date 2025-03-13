@@ -3,6 +3,7 @@ const Product = require("../models/Product");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const User = require("../models/User"); // You'll need to create this model
 const Order = require("../models/Order");
+const { v4: uuidv4 } = require("uuid");
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000"; // Fallback URL
 
 // Create a new product
@@ -86,16 +87,6 @@ exports.createCheckoutSession = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Ensure each item has a valid productId
-    const formattedItems = items.map((item) => ({
-      productId: new mongoose.Types.ObjectId(item._id), // Convert string ID to ObjectId
-      title: item.title,
-      price: item.price,
-      images: item.images,
-      availableSizes: item.availableSizes,
-      quantity: item.quantity,
-    }));
-
     // Prepare line items for Stripe
     const lineItems = items.map((item) => ({
       price_data: {
@@ -113,8 +104,9 @@ exports.createCheckoutSession = async (req, res) => {
     const newOrder = new Order({
       customer,
       paymentMethod,
-      items: formattedItems,
+      items,
       totalAmount,
+      _id: orderId, // Assign generated order ID
     });
     await newOrder.save();
 
@@ -140,7 +132,6 @@ exports.createCheckoutSession = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // Webhook to handle successful payments
 exports.handleStripeWebhook = async (req, res) => {
