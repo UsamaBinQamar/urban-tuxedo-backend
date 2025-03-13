@@ -3,6 +3,7 @@ const Product = require("../models/Product");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const User = require("../models/User"); // You'll need to create this model
 const Order = require("../models/Order");
+const { v4: uuidv4 } = require("uuid");
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000"; // Fallback URL
 
 // Create a new product
