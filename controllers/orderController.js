@@ -26,17 +26,32 @@ exports.getOrderByID = async (req, res) => {
   }
 };
 
-exports.getOrderByEmail = async (email) => {
-    try {
-      // Ensure we're using a string comparison for the email field
-      const orders = await Order.find({ "customer.email": String(email) }).lean();
-      if (orders.length === 0) {
-        console.log("No orders found for this email.");
-        return null;
-      }
-      return orders;
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-      throw error;
+const Order = require("../models/Order");
+
+exports.getOrderByEmail = async (req, res) => {
+  try {
+    const email = req.params.email; // Get the email from the route parameter
+
+    // Query the database for orders with the given email
+    const orders = await Order.find({ "customer.email": email }).lean();
+
+    if (orders.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No orders found for this email.",
+      });
     }
-  };
+
+    // Return the orders if found
+    res.status(200).json({
+      success: true,
+      data: orders,
+    });
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
