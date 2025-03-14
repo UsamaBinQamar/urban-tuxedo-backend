@@ -26,30 +26,34 @@ exports.getOrderByID = async (req, res) => {
   }
 };
 
-exports.getOrderByEmail = async (req, res) => {
+exports.getOrderByEmail = async (email) => {
   try {
-    const email = req.params.email; // Get the email from the route parameter
-
-    // Query the database for orders with the given email
-    const orders = await Order.find({ "customer.email": email }).lean();
-
+    // Ensure we're using a string comparison for the email field
+    const orders = await Order.find({ "customer.email": String(email) }).lean();
     if (orders.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No orders found for this email.",
-      });
+      console.log("No orders found for this email.");
+      return null;
     }
-
-    // Return the orders if found
-    res.status(200).json({
-      success: true,
-      data: orders,
-    });
+    return orders;
   } catch (error) {
     console.error("Error fetching orders:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    throw error;
+  }
+};
+
+exports.updateOrderStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    const order = await Order.findByIdAndUpdate(id, { status }, { new: true });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    return res.status(200).json({ message: "Order status updated", order });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error });
   }
 };
