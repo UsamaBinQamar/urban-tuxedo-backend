@@ -26,8 +26,6 @@ exports.getOrderByID = async (req, res) => {
   }
 };
 
-const Order = require("../models/Order");
-
 exports.getOrderByEmail = async (req, res) => {
   try {
     const email = req.params.email; // Get the email from the route parameter
