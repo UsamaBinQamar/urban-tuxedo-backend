@@ -26,3 +26,21 @@ exports.getCustomerById = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+// Update Customer Profile
+exports.updateCustomerProfile = async (req, res) => {
+  try {
+    const customer = await User.findById(req.params.id);
+    if (!customer)
+      return res
+        .status(404)
+        .json({ success: false, message: "Customer not found" });
+
+    const updatedData = req.body;
+    Object.assign(customer, updatedData);
+    await customer.save();
+
+    res.status(200).json({ success: true, customer });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
