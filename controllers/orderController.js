@@ -26,20 +26,25 @@ exports.getOrderByID = async (req, res) => {
   }
 };
 
-exports.getOrderByEmail = async (email) => {
+router.get('/api/order', async (req, res) => {
   try {
-    // Ensure we're using a string comparison for the email field
-    const orders = await Order.find({ "customer.email": String(email) }).lean();
-    if (orders.length === 0) {
-      console.log("No orders found for this email.");
-      return null;
+    const email = req.query.email;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email parameter is required" });
     }
-    return orders;
+    
+    const orders = await Order.find({ "customer.email": String(email) }).lean();
+    
+    if (orders.length === 0) {
+      return res.status(404).json({ success: false, message: "No orders found for this email" });
+    }
+    
+    return res.json({ success: true, data: orders });
   } catch (error) {
     console.error("Error fetching orders:", error);
-    throw error;
+    return res.status(500).json({ success: false, message: error.message });
   }
-};
+});
 
 exports.updateOrderStatus = async (req, res) => {
   const { id } = req.params;
