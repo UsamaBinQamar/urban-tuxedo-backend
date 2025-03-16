@@ -8,11 +8,11 @@ const bcrypt = require("bcryptjs");
 // Register route
 router.post("/register", async (req, res) => {
   try {
-    const { username, email, password, role } = req.body;
+    const { username, firstName, lastName, email, password, role } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({
-      $or: [{ email }, { username }],
+      $or: [{ email }],
     });
 
     if (existingUser) {
@@ -22,7 +22,7 @@ router.post("/register", async (req, res) => {
     }
 
     // Create new user
-    const user = new User({ username, email, password, role });
+    const user = new User({ username, firstName, lastName, email, password, role });
     await user.save();
 
     // Generate JWT token
