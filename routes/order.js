@@ -4,7 +4,7 @@ const orderController = require("../controllers/orderController");
 
 router.get("/", orderController.getAllOrder);
 router.get("/:id", orderController.getOrderByID);
-router.get("/:email", orderController.getOrderByEmail);
+router.get("/email/search", orderController.getOrderByEmail); // Get by email
 router.put("/:id/status", orderController.updateOrderStatus);
 
 module.exports = router;
