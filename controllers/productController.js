@@ -121,8 +121,8 @@ exports.createCheckoutSession = async (req, res) => {
         customer: JSON.stringify(customer),
         paymentMethod,
       },
-      success_url: `http:/localhost:5173/checkout-success/${newOrder._id}`,
-      cancel_url: `http:/localhost:5173/checkout-failed`,
+      success_url: `https://www.urbantuxedo.co.uk/checkout-success/${newOrder._id}`,
+      cancel_url: `https://www.urbantuxedo.co.uk/checkout-failed`,
     });
 
     // Return session URL to frontend
