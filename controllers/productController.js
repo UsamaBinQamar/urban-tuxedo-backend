@@ -108,6 +108,7 @@ exports.createCheckoutSession = async (req, res) => {
       totalAmount,
       status: "Processing",
     });
+    console.log(newOrder)
     await newOrder.save();
 
     // Create Stripe Checkout Session
@@ -172,7 +173,9 @@ exports.createCheckoutSession = async (req, res) => {
       paymentMethod,
       items: formattedItems,
       totalAmount,
+      status: "Processing",
     });
+    console.log({newOrder})
     await newOrder.save();
 
     // Create Stripe Checkout Session
