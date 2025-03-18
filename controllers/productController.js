@@ -90,7 +90,7 @@ exports.createCheckoutSession = async (req, res) => {
     // Prepare line items for Stripe
     const lineItems = items.map((item) => ({
       price_data: {
-        currency: "usd",
+        currency: "gbp",
         product_data: {
           name: item.title,
           images: [item.images?.primary || item.images?.gallery?.[0] || ""], // Fallback to gallery image if primary is missing
@@ -157,7 +157,7 @@ exports.createCheckoutSession = async (req, res) => {
     // Prepare line items for Stripe
     const lineItems = items.map((item) => ({
       price_data: {
-        currency: "usd",
+        currency: "gbp",
         product_data: {
           name: item.title,
           images: [item.images?.primary || item.images?.gallery?.[0] || ""], // Fallback to gallery image if primary is missing

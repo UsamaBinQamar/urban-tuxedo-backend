@@ -32,9 +32,13 @@ const categorySchema = new mongoose.Schema({
   },
   // Self-referencing field to allow nested categories (e.g., Electronics > Computers).
   parentCategory: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Category",
+    type: String,
     default: null,
+  },
+  // Flag to indicate if the category is in comming soon.
+  comingSoon: {
+    type: Boolean,
+    default: false,
   },
   // The timestamp when the category was created.
   createdAt: {

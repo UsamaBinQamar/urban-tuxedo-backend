@@ -32,6 +32,7 @@ const orderSchema = new mongoose.Schema({
         gallery: { type: [String], default: [] },
       },
       availableSizes: { type: [String], required: true },
+      selectedSize: { type: String },
       quantity: { type: Number, required: true, min: 1 },
     },
   ],
