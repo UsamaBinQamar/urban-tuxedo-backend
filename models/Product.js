@@ -30,7 +30,19 @@ const productSchema = new mongoose.Schema({
     },
   },
   availableSizes: {
-    type: [String],
+    type: [
+      {
+        size: {
+          type: String,
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+      },
+    ],
     required: true,
   },
   defaultQuantity: {

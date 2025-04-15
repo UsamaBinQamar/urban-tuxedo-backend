@@ -7,7 +7,6 @@ const Category = require("../models/Category");
 router.post("/", async (req, res) => {
   console.log(req.body);
   try {
-    const { name, slug, description, image,isActive, parentCategory, createdAt } = req.body;
     const category = new Category(req.body);
     await category.save();
     res.status(201).json({ success: true, category });
@@ -17,6 +16,7 @@ router.post("/", async (req, res) => {
 });
 router.get("/", categoryController.getAllCategory);
 router.get("/:id", categoryController.getCategoryById);
+router.put("/:id", categoryController.updateCategory);
 router.delete("/:id", categoryController.deleteCategory);
 
 

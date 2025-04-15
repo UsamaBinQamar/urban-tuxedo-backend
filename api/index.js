@@ -14,7 +14,15 @@ const app = express();
 app.use(cors());
 
 // Middleware
-app.use(express.json());
+// app.use(express.json());
+app.use((req, res, next) => {
+  // Skip parsing for the webhook route
+  if (req.originalUrl === '/api/products/webhook') {
+    next();
+  } else {
+    express.json()(req, res, next);
+  }
+});
 
 // CORS middleware
 app.use((req, res, next) => {

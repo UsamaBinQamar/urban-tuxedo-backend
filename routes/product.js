@@ -4,9 +4,7 @@ const productController = require("../controllers/productController");
 const Product = require("../models/Product");
 
 router.post("/", async (req, res) => {
-  console.log(req.body);
   try {
-    const { name, description, price, imageUrl, category, stock } = req.body;
     const product = new Product(req.body);
     await product.save();
     res.status(201).json({ success: true, product });
@@ -20,5 +18,9 @@ router.put("/:id", productController.updateProduct);
 router.delete("/:id", productController.deleteProduct);
 
 router.post("/checkout", productController.createCheckoutSession);
+
+router.post("/webhook", express.raw({ type: "application/json" }), productController.stripeWebhook);
+
+router.get("/email/send", productController.sendEmail);
 
 module.exports = router;

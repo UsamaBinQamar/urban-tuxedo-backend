@@ -13,14 +13,14 @@ const orderSchema = new mongoose.Schema({
       zipCode: { type: String, required: true },
     },
   },
-  paymentMethod: {
-    type: String,
-    required: true,
-    enum: ["cod", "card", "paypal"], // Add more methods if needed
-  },
+  // paymentMethod: {
+  //   type: String,
+  //   required: true,
+  //   enum: ["cod", "card", "paypal"], // Add more methods if needed
+  // },
   items: [
     {
-      productId: {
+      _id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product",
         required: true,
@@ -31,7 +31,7 @@ const orderSchema = new mongoose.Schema({
         primary: { type: String, required: true },
         gallery: { type: [String], default: [] },
       },
-      availableSizes: { type: [String], required: true },
+      // availableSizes: { type: [String], required: true },
       selectedSize: { type: String },
       quantity: { type: Number, required: true, min: 1 },
     },
