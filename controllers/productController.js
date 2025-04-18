@@ -1,6 +1,6 @@
 const crypto = require("crypto");
 const Product = require("../models/Product");
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const stripe = require("stripe")(process.env.STRIPE_LIVE__SECRET_KEY);
 const User = require("../models/User"); // You'll need to create this model
 const Order = require("../models/Order");
 const mongoose = require("mongoose");
@@ -8,7 +8,7 @@ const { Resend } = require("resend");
 const nodemailer = require("nodemailer");
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000"; // Fallback URL
-const endpointSecret = process.env.STRIPE_ENDPOINT_SECRET_KEY;
+const endpointSecret = process.env.STRIPE_LIVE_ENDPOINT_SECRET_KEY;
 const nodemailerService = process.env.NODEMAILER_SERVICE;
 const nodemailerUser = process.env.NODEMAILER_USER;
 const nodemailerPassword = process.env.NODEMAILER_PASSWORD;
