@@ -1,14 +1,16 @@
 const crypto = require("crypto");
 const Product = require("../models/Product");
-const stripe = require("stripe")(process.env.STRIPE_LIVE__SECRET_KEY);
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const User = require("../models/User"); // You'll need to create this model
 const Order = require("../models/Order");
 const mongoose = require("mongoose");
 const { Resend } = require("resend");
 const nodemailer = require("nodemailer");
+const { v4: uuidv4 } = require("uuid");
+const TempOrder = require("../models/TempOrder");
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000"; // Fallback URL
-const endpointSecret = process.env.STRIPE_LIVE_ENDPOINT_SECRET_KEY;
+const endpointSecret = process.env.STRIPE_ENDPOINT_SECRET_KEY;
 const nodemailerService = process.env.NODEMAILER_SERVICE;
 const nodemailerUser = process.env.NODEMAILER_USER;
 const nodemailerPassword = process.env.NODEMAILER_PASSWORD;
@@ -93,6 +95,18 @@ exports.createCheckoutSession = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    // Generate a temporary order token
+    const orderToken = uuidv4();
+
+    // Save temp order to the database
+    await TempOrder.create({
+      orderToken,
+      customer,
+      paymentMethod,
+      items,
+      totalAmount,
+    });
+
     // Prepare line items for Stripe
     const lineItems = items.map((item) => ({
       price_data: {
@@ -113,16 +127,12 @@ exports.createCheckoutSession = async (req, res) => {
       line_items: lineItems,
       mode: "payment",
       metadata: {
-        customer: JSON.stringify(customer),
-        paymentMethod,
-        items: JSON.stringify(items), // Store items as string to use in webhook
-        totalAmount,
+        orderToken,
       },
       success_url: `https://www.urbantuxedo.co.uk/checkout-success`,
       cancel_url: `https://www.urbantuxedo.co.uk/checkout-failed`,
     });
 
-    // Return session URL to frontend
     res.status(200).json({ url: session.url });
   } catch (error) {
     console.error("Error creating checkout session:", error);
@@ -133,23 +143,24 @@ exports.createCheckoutSession = async (req, res) => {
 exports.stripeWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
 
-  // Debug info
-  console.log("Received webhook");
-  console.log("Request body type:", typeof req.body); // Should be object (Buffer)
-
   try {
     const event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
+      const orderToken = session.metadata.orderToken;
 
-      // Extract order details from metadata
-      const customer = JSON.parse(session.metadata.customer);
-      const paymentMethod = session.metadata.paymentMethod;
-      const items = JSON.parse(session.metadata.items);
-      const totalAmount = session.metadata.totalAmount;
+      // Retrieve temp order
+      const tempOrder = await TempOrder.findOne({ orderToken });
 
-      // Save order in database
+      if (!tempOrder) {
+        console.error("Temp order not found for token:", orderToken);
+        return res.status(404).json({ error: "Temp order not found" });
+      }
+
+      const { customer, paymentMethod, items, totalAmount } = tempOrder;
+
+      // Save final order
       const newOrder = new Order({
         customer,
         paymentMethod,
@@ -157,13 +168,15 @@ exports.stripeWebhook = async (req, res) => {
         totalAmount,
         status: "Processing",
       });
-      console.log(newOrder);
+
       await newOrder.save();
 
-      // Send confirmation email
-      // sendEmail();
+      // Cleanup: remove temp order
+      await TempOrder.deleteOne({ orderToken });
+
+      // Send confirmation email and update stock
       sendEmail(customer.email, newOrder);
-      updateItemStockCount(newOrder); // Update stock count
+      updateItemStockCount(newOrder);
 
       console.log("Order saved & email sent!");
 
@@ -179,111 +192,90 @@ exports.stripeWebhook = async (req, res) => {
 
 async function sendEmail(email, newOrder) {
   try {
-    // Format date
     const orderDate = new Date(newOrder.createdAt).toLocaleDateString("en-GB", {
       day: "numeric",
       month: "long",
       year: "numeric",
     });
 
-    // Format order ID - taking just the first part for readability
     const orderId = newOrder._id.toString().substring(0, 10);
 
     let transporter = nodemailer.createTransport({
       service: nodemailerService,
       auth: {
-        user: nodemailerUser, // Your Gmail
-        pass: nodemailerPassword, // Generate from Google Account
+        user: nodemailerUser,
+        pass: nodemailerPassword,
       },
     });
-
-    // Create items HTML
-    let itemsHTML = "";
-    let subtotal = 0;
-
-    newOrder.items.forEach((item) => {
-      subtotal += item.price * item.quantity;
-      itemsHTML += `
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #eee;">${
-            item.title
-          }</td>
-          <td style="padding: 10px; border-bottom: 1px solid #eee;">${
-            item.quantity
-          }</td>
-          <td style="padding: 10px; border-bottom: 1px solid #eee;">£${item.price.toFixed(
-            2
-          )}</td>
-        </tr>
-      `;
-    });
-
-    // Calculate shipping (assuming the difference between total and subtotal is shipping)
-    const shipping = newOrder.totalAmount - subtotal;
 
     const mailOptions = {
       from: "razatalha750@gmail.com",
       to: email || newOrder.customer.email,
-      subject: "Order Confirmation - Urban Tuxedo",
+      subject: "Your Order Confirmation - Urban Tuxedo",
       html: `
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Confirmation - Urban Tuxedo</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Order Confirmation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #ffffff;
+      color: #000000;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      background-color: #000000;
+      color: #ffffff;
+      padding: 30px 20px;
+      text-align: center;
+    }
+    .order-number {
+      background-color: #f2f2f2;
+      padding: 15px 20px;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .content {
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .footer {
+      padding: 20px;
+      font-size: 14px;
+      color: #666;
+    }
+  </style>
 </head>
-<body style="font-family: 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="text-align: center; margin-bottom: 30px;">
-    <div style="font-size: 24px; font-weight: bold; color: #14213d; letter-spacing: 1px;">URBAN TUXEDO</div>
+<body>
+  <div class="header">
+    <h1>YOUR ORDER CONFIRMATION</h1>
+    <p>Thanks for your order.</p>
   </div>
-
-  <h1 style="color: #14213d; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; margin-top: 20px;">Order Confirmation</h1>
-  
-  <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
-    <p>Hello <strong>${newOrder.customer.firstName} ${
-        newOrder.customer.lastName
-      }</strong>,</p>
-    <p>Thank you for your order! We're pleased to confirm that your order has been received and is being processed.</p>
-    <p><span style="font-weight: bold; color: #14213d;">Order #:</span> ${orderId}</p>
-    <p><span style="font-weight: bold; color: #14213d;">Order Date:</span> ${orderDate}</p>
+  <div class="order-number">
+    YOUR ORDER NUMBER: ${orderId}
   </div>
+  <div class="content">
+    <p>Hey ${newOrder.customer.firstName},</p>
 
-  <h2 style="color: #14213d; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; margin-top: 20px;">Order Summary</h2>
-  
-  <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-    <thead>
-      <tr>
-        <th style="background-color: #f0f0f0; text-align: left; padding: 10px;">Product</th>
-        <th style="background-color: #f0f0f0; text-align: left; padding: 10px;">Quantity</th>
-        <th style="background-color: #f0f0f0; text-align: left; padding: 10px;">Price</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${itemsHTML}
-      <tr>
-        <td colspan="2" style="text-align: right; padding: 10px; border-bottom: 1px solid #eee;">Subtotal:</td>
-        <td style="padding: 10px; border-bottom: 1px solid #eee;">£${subtotal.toFixed(
-          2
-        )}</td>
-      </tr>
-      <tr>
-        <td colspan="2" style="text-align: right; padding: 10px; border-bottom: 1px solid #eee;">Shipping & Handling:</td>
-        <td style="padding: 10px; border-bottom: 1px solid #eee;">£${shipping.toFixed(
-          2
-        )}</td>
-      </tr>
-      <tr>
-        <td colspan="2" style="text-align: right; padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Total:</td>
-        <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">£${newOrder.totalAmount.toFixed(
-          2
-        )}</td>
-      </tr>
-    </tbody>
-  </table>
+    <p>Thanks for shopping with us. Your order has been confirmed!</p>
 
-  <p style="text-align: center; margin: 30px 0; font-size: 18px; color: #14213d;">Thank you for shopping with Urban Tuxedo!</p>
+    <p>Once it’s been dispatched, we'll send you another email so you know it’s on the way. 
 
+    <p>If there's any issue, we’ll let you know ASAP.</p>
+
+    <p><strong>Order Date:</strong> ${orderDate}</p>
+
+    <p>Please note that if you ordered more than one item, your order may be split into separate deliveries.</p>
+
+    <p style="margin-top: 30px;">Thanks again,<br/>Urban Tuxedo Team</p>
+  </div>
+  <div class="footer">
+    &copy; ${new Date().getFullYear()} Urban Tuxedo. All rights reserved.
+  </div>
 </body>
 </html>
       `,
@@ -293,8 +285,6 @@ async function sendEmail(email, newOrder) {
     console.log("Email sent!");
   } catch (error) {
     console.error("Email sending failed:", error);
-    // Since this is a function, we shouldn't directly use res here
-    // Instead, we could throw the error to be handled by the caller
     throw new Error(`Failed to send email: ${error.message}`);
   }
 }
@@ -311,7 +301,9 @@ async function updateItemStockCount(order) {
     const result = await Product.bulkWrite(bulkOperations);
 
     if (result.modifiedCount !== order.items.length) {
-      console.warn("Some items could not be updated. Check stock availability.");
+      console.warn(
+        "Some items could not be updated. Check stock availability."
+      );
     }
   } catch (error) {
     console.error("Error updating stock count:", error);

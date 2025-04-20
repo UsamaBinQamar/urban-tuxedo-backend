@@ -43,9 +43,15 @@ const productSchema = new mongoose.Schema({
   availableSizes: {
     type: [
       {
+        color: {
+          type: String,
+          required: false,
+          default: 'NOCOLOR',
+        },
         size: {
           type: String,
-          required: true,
+          required: false,
+          default: 'FREESIZE',
         },
         quantity: {
           type: Number,
@@ -54,7 +60,7 @@ const productSchema = new mongoose.Schema({
         },
       },
     ],
-    required: true,
+    required: false,
   },
   defaultQuantity: {
     type: Number,
