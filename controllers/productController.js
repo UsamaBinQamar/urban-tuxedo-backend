@@ -176,6 +176,7 @@ exports.stripeWebhook = async (req, res) => {
 
       // Send confirmation email and update stock
       sendEmail(customer.email, newOrder);
+      sendOrderNotificationToOwner(newOrder);
       updateItemStockCount(newOrder);
 
       console.log("Order saved & email sent!");
@@ -209,7 +210,7 @@ async function sendEmail(email, newOrder) {
     });
 
     const mailOptions = {
-      from: "razatalha750@gmail.com",
+      from: nodemailerUser,
       to: email || newOrder.customer.email,
       subject: "Your Order Confirmation - Urban Tuxedo",
       html: `
@@ -288,6 +289,71 @@ async function sendEmail(email, newOrder) {
     throw new Error(`Failed to send email: ${error.message}`);
   }
 }
+
+async function sendOrderNotificationToOwner(newOrder) {
+  try {
+    const orderDate = new Date(newOrder.createdAt).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+
+    const orderId = newOrder._id.toString().substring(0, 10);
+
+    let transporter = nodemailer.createTransport({
+      service: nodemailerService,
+      auth: {
+        user: nodemailerUser,
+        pass: nodemailerPassword,
+      },
+    });
+
+    const mailOptions = {
+      from: nodemailerUser,
+      to: nodemailerUser, // Replace with actual store owner email
+      subject: `New Order Received - ${orderId}`,
+      html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      color: #000;
+      background-color: #fff;
+      padding: 20px;
+    }
+    h2 {
+      color: #333;
+    }
+    p {
+      margin: 6px 0;
+    }
+  </style>
+</head>
+<body>
+  <h2>New Order Notification</h2>
+  <p><strong>Order ID:</strong> ${orderId}</p>
+  <p><strong>Order Date:</strong> ${orderDate}</p>
+  <p><strong>Customer:</strong> ${newOrder.customer.firstName} ${newOrder.customer.lastName}</p>
+  <p><strong>Email:</strong> ${newOrder.customer.email}</p>
+  <p><strong>Total Amount:</strong> $${newOrder.total.toFixed(2)}</p>
+
+  <p>A new order has been placed. Please log in to the admin panel to view full details.</p>
+</body>
+</html>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log("Owner notification email sent!");
+  } catch (error) {
+    console.error("Failed to send owner notification email:", error);
+    throw new Error(`Failed to send owner email: ${error.message}`);
+  }
+}
+
 
 async function updateItemStockCount(order) {
   try {
