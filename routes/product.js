@@ -21,6 +21,6 @@ router.post("/checkout", productController.createCheckoutSession);
 
 router.post("/webhook", express.raw({ type: "application/json" }), productController.stripeWebhook);
 
-router.get("/email/send", productController.sendEmail);
+router.post("/email/send", productController.sendEmail);
 
 module.exports = router;

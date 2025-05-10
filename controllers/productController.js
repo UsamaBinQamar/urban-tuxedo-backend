@@ -13,7 +13,8 @@ const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000"; // Fallbac
 const endpointSecret = process.env.STRIPE_LIVE_ENDPOINT_SECRET_KEY;
 const nodemailerService = process.env.NODEMAILER_SERVICE;
 const nodemailerUser = process.env.NODEMAILER_USER;
-const nodemailerPassword = process.env.NODEMAILER_PASSWORD;
+// const nodemailerPassword = process.env.NODEMAILER_PASSWORD;
+const nodemailerPassword = 'buzv vlei vpbd zual';
 
 // Create a new product
 exports.createProduct = async (req, res) => {
@@ -378,24 +379,36 @@ async function updateItemStockCount(order) {
 
 exports.sendEmail = async (req, res) => {
   try {
-    let transporter = nodemailer.createTransport({
-      service: "gmail",
+    const { to, subject, html } = req.body;
+
+    if (!to || !subject || !html) {
+      return res.status(400).json({ success: false, message: "Missing required fields: to, subject, html" });
+    }
+    console.log(nodemailerService, nodemailerPassword, nodemailerUser);
+    
+
+    const transporter = nodemailer.createTransport({
+      service: nodemailerService,
       auth: {
-        user: "razatalha750@gmail.com", // Your Gmail
-        pass: "jdjv wlmb sctg xcwv", // Generate from Google Account
+        user: nodemailerUser,     // Set in .env for safety
+        pass: nodemailerPassword,         // App password (never use your main password)
       },
     });
 
     const mailOptions = {
-      from: "razatalha750@gmail.com",
-      to: "hrxfarooqi@gmail.com",
-      subject: "Order Confirmation",
-      html: "<h1>Thank you for your order!</h1>",
+      from: nodemailerUser,
+      to,
+      subject,
+      html,
     };
 
     await transporter.sendMail(mailOptions);
-    console.log("Email sent!");
+    console.log(`Email sent to ${to} with subject: "${subject}"`);
+
+    return res.status(200).json({ success: true, message: "Email sent successfully" });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Failed to send email:", error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
+
