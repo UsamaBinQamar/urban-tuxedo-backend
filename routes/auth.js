@@ -5,7 +5,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
 
-// Register route
+// Register route   
 router.post("/register", async (req, res) => {
   try {
     const { username, firstName, lastName, email, password, role } = req.body;
