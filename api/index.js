@@ -14,6 +14,33 @@ const cors = require("cors");
 const app = express();
 app.use(cors());
 
+let dbConnectionPromise;
+function connectToDatabase() {
+  if (!dbConnectionPromise) {
+    dbConnectionPromise = mongoose
+      .connect(process.env.MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000,
+      })
+      .catch((err) => {
+        dbConnectionPromise = undefined;
+        throw err;
+      });
+  }
+  return dbConnectionPromise;
+}
+
+app.use(async (req, res, next) => {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (err) {
+    console.error("MongoDB connection error:", err);
+    res.status(500).json({ success: false, message: "Database connection failed" });
+  }
+});
+
 // Middleware
 // app.use(express.json());
 app.use((req, res, next) => {
@@ -74,23 +101,17 @@ app.use("/api/category", categoryRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/order", orderRoutes);
 app.use("/api/promotions", promotionRoutes);
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to Urban Tuxedo API" });
 });
 
-// MongoDB connection
-mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("Connected to MongoDB"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  connectToDatabase()
+    .then(() => {
+      app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    })
+    .catch((err) => console.error("MongoDB connection error:", err));
+}
 
 module.exports = app;
